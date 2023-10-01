@@ -1,7 +1,9 @@
 {-# OPTIONS --guardedness #-}
 
 open import Data.Bool.Base using (Bool)
+open import Data.Fin.Base using (Fin)
 open import Data.Integer.Base using (ℤ; _+_; -_)
+open import Data.Nat.Base using (ℕ)
 open import Data.Product using (_×_; _,_)
 open import Data.Unit.Base using (⊤)
 open import Function.Base using (_$_)
@@ -23,9 +25,17 @@ T[ int ] = ℤ
 T[ bool ] = Bool
 
 -- Binary Session:
-data Session : Set where
+data Session : Set
+
+-- A session that depends on a set of labels modeled by Fin k:
+Session[_] : (k : ℕ) -> Set
+Session[ k ] = Fin k -> Session
+
+data Session where
   !_∙_ : Sort -> Session -> Session
   ¿_∙_ : Sort -> Session -> Session
+  ⨁ : ∀ {k} -> Session[ k ] -> Session -- internal choice
+  & : ∀ {k} -> Session[ k ] -> Session -- external choice
   end : Session
 
 {-
@@ -42,6 +52,15 @@ data Cmd (A : Set) : Session -> Set where
     -> (T[ sort ] -> A -> A)
     -> Cmd A session
     -> Cmd A (¿ sort ∙ session)
+
+  select : ∀ {k} {sessionOf : Session[ k ]}
+    -> (i : Fin k)
+    -> Cmd A (sessionOf i)
+    -> Cmd A (⨁ sessionOf)
+
+  choice : ∀ {k} {sessionOf : Session[ k ]}
+    -> (∀ i -> Cmd A (sessionOf i))
+    -> Cmd A (& sessionOf)
 
   close : Cmd A end
 
@@ -60,11 +79,21 @@ exec (send get cmd) state1 channel = do
   let (state2 , x) = get state1
   primSend x channel
   exec cmd state2 channel
+
 exec (recv put cmd) state1 channel = do
   x <- primRecv channel
   let state2 = put x state1
   exec cmd state2 channel
-exec close state channel = primClose channel >> pure state
+
+exec (select i cmd) state channel =
+  primSend i channel >> exec cmd state channel
+
+exec (choice cmdOf) state channel = do
+  i <- primRecv channel
+  exec (cmdOf i) state channel
+
+exec close state channel =
+  primClose channel >> pure state
 
 -- Accepting a connection:
 record Accepting A S : Set where
