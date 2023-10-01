@@ -7,7 +7,7 @@ open import Data.String.Base using (String)
 open import Data.Unit.Base using (⊤)
 
 -- Based on http://mrg.doc.ic.ac.uk/publications/a-very-gentle-introduction-to-multiparty-session-types/main.pdf
-module Session.Base where
+module Intro.Session.Base where
 
 -----------------
 -- Definitions --
@@ -76,21 +76,26 @@ data Process : Set1 where
   var : Var -> Process
   end : Process
 
+data RunningProcess : Set1 where
+  _◁_ : Participant -> Process -> RunningProcess
+
+-- Represents the parallel composition of two processes:
 data MultipartyProcess : Set1 where
-  _exec_ : Participant -> Process -> MultipartyProcess
-  -- Represents the parallel composition of two processes:
-  _<>_ : Process -> Process -> MultipartyProcess
+  receivers : List⁺ RunningProcess -> MultipartyProcess
+  producers : List⁺ RunningProcess -> MultipartyProcess
 
 
 infixl 19 _+_
 infix 18 _less_
 infixr 17 _∙_
-infixl 16 _<>_
+infixl 16 _◁_
 
 ---------------
 -- Functions --
 ---------------
-
+reduceProcess : MultipartyProcess -> MultipartyProcess
+reduceProcess (receivers x) = {!   !}
+reduceProcess (producers x) = {!   !}
 
 --------------
 -- Examples --
