@@ -53,14 +53,14 @@ data Cmd (A : Set) : Session -> Set where
     -> Cmd A session
     -> Cmd A (¿ sort ∙ session)
 
-  select : ∀ {k} {sessionOf : Session[ k ]}
+  select : ∀ {k} {sessions : Session[ k ]}
     -> (i : Fin k)
-    -> Cmd A (sessionOf i)
-    -> Cmd A (⨁ sessionOf)
+    -> Cmd A (sessions i)
+    -> Cmd A (⨁ sessions)
 
-  choice : ∀ {k} {sessionOf : Session[ k ]}
-    -> (∀ i -> Cmd A (sessionOf i))
-    -> Cmd A (& sessionOf)
+  choice : ∀ {k} {sessions : Session[ k ]}
+    -> (∀ i -> Cmd A (sessions i))
+    -> Cmd A (& sessions)
 
   close : Cmd A end
 
