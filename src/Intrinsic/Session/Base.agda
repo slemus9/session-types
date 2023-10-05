@@ -100,6 +100,7 @@ exec (choice cmdOf) state channel = do
 
 exec (dselect getLabel cmdOf) state1 channel = do
   let (state2 , i) = getLabel state1
+  primSend i channel
   exec (cmdOf i) state2 channel
 
 exec close state channel =
