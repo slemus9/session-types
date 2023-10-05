@@ -2,6 +2,7 @@
 
 open import Data.Bool.Base using (Bool)
 open import Data.Fin.Base using (Fin)
+open import Data.Fin.Patterns
 open import Data.Integer.Base using (ℤ; _+_; -_)
 open import Data.Nat.Base using (ℕ)
 open import Data.Product using (_×_; _,_)
@@ -62,6 +63,11 @@ data Cmd (A : Set) : Session -> Set where
     -> (∀ i -> Cmd A (sessions i))
     -> Cmd A (& sessions)
 
+  dselect : ∀ {k} {sessions : Session[ k ]}
+    -> (A -> A × Fin k)
+    -> (∀ i -> Cmd A (sessions i))
+    -> Cmd A (⨁ sessions)
+
   close : Cmd A end
 
 -----------------
@@ -92,6 +98,10 @@ exec (choice cmdOf) state channel = do
   i <- primRecv channel
   exec (cmdOf i) state channel
 
+exec (dselect getLabel cmdOf) state1 channel = do
+  let (state2 , i) = getLabel state1
+  exec (cmdOf i) state2 channel
+
 exec close state channel =
   primClose channel >> pure state
 
@@ -112,8 +122,19 @@ binaryp = ¿ int ∙ ¿ int ∙ ! int ∙ end
 unaryp : Session
 unaryp = ¿ int ∙ ! int ∙ end
 
+arithp : Session
+arithp = & alt where
+  alt : Session[ 2 ]
+  alt 0F = binaryp
+  alt 1F = unaryp
+
 negp-cmd : Cmd ℤ unaryp
 negp-cmd = recv (λ x a -> x) $ send (λ a -> a , - a) close
 
 addp-cmd : Cmd ℤ binaryp
 addp-cmd = recv (λ x a -> x) $ recv (λ y a -> y + a) $ send (λ a -> a , a) close
+
+arithp-cmd : Cmd ℤ arithp
+arithp-cmd = choice λ where
+  0F -> addp-cmd
+  1F -> negp-cmd
